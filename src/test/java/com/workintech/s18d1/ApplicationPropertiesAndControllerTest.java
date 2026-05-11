@@ -5,8 +5,8 @@ import com.workintech.s18d1.controller.BurgerController;
 import com.workintech.s18d1.dao.BurgerDao;
 import com.workintech.s18d1.entity.BreadType;
 import com.workintech.s18d1.entity.Burger;
-import com.workintech.s18d1.exceptions.BurgerException;
-import com.workintech.s18d1.exceptions.GlobalExceptionHandler;
+import com.workintech.s18d1.exceptions.BurgerErrorException;
+import com.workintech.s18d1.exceptions.GlobalControllerException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -34,8 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 
-@WebMvcTest(controllers = {BurgerController.class, GlobalExceptionHandler.class,ApplicationPropertiesAndControllerTest.class})
-@ExtendWith(ResultAnalyzer.class)
+@WebMvcTest(BurgerController.class)
+@Import(GlobalControllerException.class)
 class ApplicationPropertiesAndControllerTest {
 
     @Autowired
@@ -58,7 +59,7 @@ class ApplicationPropertiesAndControllerTest {
         sampleBurger.setId(1L);
         sampleBurger.setName("Classic Burger");
         sampleBurger.setPrice(7.99);
-        sampleBurger.setIsVegan(false);
+        sampleBurger.setVegan(false);
         sampleBurger.setBreadType(BreadType.BURGER);
         sampleBurger.setContents("Beef, Lettuce, Tomato, Cheese");
     }
@@ -96,7 +97,7 @@ class ApplicationPropertiesAndControllerTest {
     @Test
     @DisplayName("Burger not found exception test")
     void testBurgerNotFoundException() throws Exception {
-        given(burgerDao.findById(anyLong())).willThrow(new BurgerException("Burger not found", HttpStatus.NOT_FOUND));
+        given(burgerDao.findById(anyLong())).willThrow(new BurgerErrorException("Burger not found", HttpStatus.NOT_FOUND));
 
         mockMvc.perform(get("/burger/{id}", 1L))
                 .andExpect(status().isNotFound())
@@ -157,7 +158,7 @@ class ApplicationPropertiesAndControllerTest {
         updatedBurger.setName("Updated Classic Burger");
         given(burgerDao.update(any())).willReturn(updatedBurger);
 
-        mockMvc.perform(put("/burger")
+        mockMvc.perform(put("/burger/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedBurger)))
                 .andExpect(status().isOk())
@@ -181,7 +182,7 @@ class ApplicationPropertiesAndControllerTest {
         List<Burger> burgers = Arrays.asList(sampleBurger);
         given(burgerDao.findByBreadType(sampleBurger.getBreadType())).willReturn(burgers);
 
-        mockMvc.perform(get("/burger/breadType/{breadType}", sampleBurger.getBreadType()))
+        mockMvc.perform(get("/burger/findByBreadType/{breadType}", sampleBurger.getBreadType()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].name", is(sampleBurger.getName())));
@@ -191,9 +192,9 @@ class ApplicationPropertiesAndControllerTest {
     @DisplayName("Find by price test")
     void testFindByPrice() throws Exception {
         List<Burger> burgers = Arrays.asList(sampleBurger);
-        given(burgerDao.findByPrice(sampleBurger.getPrice().intValue())).willReturn(burgers);
+        given(burgerDao.findByPrice(sampleBurger.getPrice())).willReturn(burgers);
 
-        mockMvc.perform(get("/burger/price/{price}", sampleBurger.getPrice().intValue()))
+        mockMvc.perform(get("/burger/findByPrice/{price}", sampleBurger.getPrice()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].name", is(sampleBurger.getName())));
@@ -205,7 +206,7 @@ class ApplicationPropertiesAndControllerTest {
         List<Burger> burgers = Arrays.asList(sampleBurger);
         given(burgerDao.findByContent("Cheese")).willReturn(burgers);
 
-        mockMvc.perform(get("/burger/content/{content}", "Cheese"))
+        mockMvc.perform(get("/burger/findByContent/{content}", "Cheese"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].contents", containsString("Cheese")));

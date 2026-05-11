@@ -5,7 +5,7 @@ import com.workintech.s18d1.dao.BurgerDaoImpl;
 import com.workintech.s18d1.entity.BreadType;
 import com.workintech.s18d1.entity.Burger;
 import com.workintech.s18d1.exceptions.BurgerErrorResponse;
-import com.workintech.s18d1.exceptions.BurgerException;
+import com.workintech.s18d1.exceptions.BurgerErrorException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,7 +60,7 @@ class MainTest {
         burger.setId(1L);
         burger.setName("Vegan Delight");
         burger.setPrice(8.99);
-        burger.setIsVegan(true);
+        burger.setVegan(true);
         burger.setBreadType(BreadType.WRAP);
         burger.setContents("Lettuce, Tomato, Vegan Patty, Avocado");
 
@@ -68,7 +68,7 @@ class MainTest {
         assertEquals(1L, burger.getId());
         assertEquals("Vegan Delight", burger.getName());
         assertEquals(8.99, burger.getPrice());
-        assertEquals(true, burger.getIsVegan());
+        assertEquals(true, burger.isVegan());
         assertEquals(BreadType.WRAP, burger.getBreadType());
         assertEquals("Lettuce, Tomato, Vegan Patty, Avocado", burger.getContents());
     }
@@ -111,7 +111,7 @@ class MainTest {
     @Test
     void testFindById_NotExists() {
         when(entityManager.find(Burger.class, 999L)).thenReturn(null);
-        assertThrows(BurgerException.class, () -> burgerDao.findById(999L));
+        assertThrows(BurgerErrorException.class, () -> burgerDao.findById(999L));
     }
 
     @Test
@@ -161,7 +161,7 @@ class MainTest {
     }
     @Test
     void testImplementsBurgerDaoInterface() {
-        BurgerDaoImpl burgerDaoImpl = new BurgerDaoImpl(null);
+        BurgerDaoImpl burgerDaoImpl = new BurgerDaoImpl();
         assertTrue(burgerDaoImpl instanceof BurgerDao, "BurgerDaoImpl should implement BurgerDao interface");
     }
 
@@ -178,16 +178,16 @@ class MainTest {
         String expectedMessage = "Test exception message";
         HttpStatus expectedStatus = HttpStatus.BAD_REQUEST;
 
-        BurgerException exception = new BurgerException(expectedMessage, expectedStatus);
+        BurgerErrorException exception = new BurgerErrorException(expectedMessage, expectedStatus);
 
 
         assertEquals(expectedMessage, exception.getMessage(), "The exception message should match the expected value.");
-        assertEquals(expectedStatus, exception.getHttpStatus(), "The HttpStatus should match the expected value.");
+        assertEquals(expectedStatus, exception.getStatus(), "The HttpStatus should match the expected value.");
     }
 
     @Test
     void testBurgerExceptionIsRuntimeException() {
-        BurgerException exception = new BurgerException("Test", HttpStatus.BAD_REQUEST);
+        BurgerErrorException exception = new BurgerErrorException("Test", HttpStatus.BAD_REQUEST);
 
 
         assertTrue(exception instanceof RuntimeException, "BurgerException should be an instance of RuntimeException.");
